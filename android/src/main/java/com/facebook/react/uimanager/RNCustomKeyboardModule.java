@@ -30,6 +30,7 @@ import com.facebook.react.uimanager.RootView;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.UIViewOperationQueue;
 import com.facebook.react.views.textinput.ReactEditText;
+import com.facebook.react.ReactInstanceManager;
 
 public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
     private final int TAG_ID = 0xdeadbeaf;
