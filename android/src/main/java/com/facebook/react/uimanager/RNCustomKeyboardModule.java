@@ -34,6 +34,7 @@ import com.facebook.react.views.textinput.ReactEditText;
 public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
     private final int TAG_ID = 0xdeadbeaf;
     private final ReactApplicationContext reactContext;
+    public static ReactInstanceManager rnInstanceManager;
 
     public RNCustomKeyboardModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -113,7 +114,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         bundle.putInt("tag", tag);
         bundle.putString("type", type);
         rootView.startReactApplication(
-                ((ReactApplication) activity.getApplication()).getReactNativeHost().getReactInstanceManager(),
+                rnInstanceManager,
                 "CustomKeyboard",
                 bundle);
 
