@@ -2,114 +2,163 @@
 package com.facebook.react.uimanager;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ResultReceiver;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.RelativeLayout;
 
-import com.facebook.react.ReactApplication;
+import android.widget.RelativeLayout;
 import com.facebook.react.ReactRootView;
-import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.LifecycleEventListener;
-import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.ReadableMapKeySetIterator;
-import com.facebook.react.bridge.UiThreadUtil;
-import com.facebook.react.bridge.WritableArray;
-import com.facebook.react.uimanager.RootView;
-import com.facebook.react.uimanager.UIManagerModule;
-import com.facebook.react.uimanager.UIViewOperationQueue;
 import com.facebook.react.views.textinput.ReactEditText;
 import com.facebook.react.ReactInstanceManager;
 
+import java.lang.reflect.Method;
+
 public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
+    private static final String TAG = "RNCustomKeyboardModule";
+    private static final int DEFAULT_TIMEOUT = 200;
     private final int TAG_ID = 0xdeadbeaf;
     private final ReactApplicationContext reactContext;
     public static ReactInstanceManager rnInstanceManager;
 
+    private Method setShowSoftInputOnFocusMethod;
+    private Method setSoftInputShownOnFocusMethod;
+
+    private ReactRootView rootView = null;
+    private Handler mHandler = new Handler(Looper.getMainLooper());
+
     public RNCustomKeyboardModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
+        initReflectMethod();
     }
 
-    Handler handle = new Handler(Looper.getMainLooper());
+    private void initReflectMethod () {
+        Class<ReactEditText> cls = ReactEditText.class;
+        try {
+            setShowSoftInputOnFocusMethod = cls.getMethod("setShowSoftInputOnFocus", boolean.class);
+            setShowSoftInputOnFocusMethod.setAccessible(true);
+        } catch (Exception e) {
+            Log.i(TAG, "initReflectMethod 1  err=" + e.getMessage());
+        }
+        try {
+            setSoftInputShownOnFocusMethod = cls.getMethod("setSoftInputShownOnFocus", boolean.class);
+            setSoftInputShownOnFocusMethod.setAccessible(true);
+        } catch (Exception e) {
+            Log.i(TAG, "initReflectMethod 2  err=" + e.getMessage());
+        }
+    }
 
-    private ReactEditText getEditById(int id) {
+    private ReactEditText getEditById(int id) throws IllegalViewOperationException{
         UIViewOperationQueue uii = this.getReactApplicationContext().getNativeModule(UIManagerModule.class).getUIImplementation().getUIViewOperationQueue();
         return (ReactEditText) uii.getNativeViewHierarchyManager().resolveView(id);
     }
 
-    @ReactMethod
-    public void install(final int tag, final String type) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+    private void showKeyboard (final Activity activity, final ReactEditText edit) {
+        final ResultReceiver receiver = new ResultReceiver(mHandler) {
             @Override
-            public void run() {
-                final Activity activity = getCurrentActivity();
-                final ReactEditText edit = getEditById(tag);
-                if (edit == null) {
-                    return;
-                }
-
-                edit.setTag(TAG_ID, createCustomKeyboard(activity, tag, type));
-
-                edit.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(final View v, boolean hasFocus) {
-                        if (hasFocus) {
-                            View keyboard = (View)edit.getTag(TAG_ID);
-                            if (keyboard.getParent() == null) {
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+//                Log.i(TAG, "showKeyboard ------ resultCode=" + resultCode);
+                if (resultCode == InputMethodManager.RESULT_UNCHANGED_HIDDEN || resultCode == InputMethodManager.RESULT_HIDDEN) {
+                    mHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            View keyboard = (View) edit.getTag(TAG_ID);
+                            if (keyboard.getParent() == null && edit.isFocused()) {
+//                                Log.i(TAG, "showKeyboard +++++++++");
                                 activity.addContentView(keyboard, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                             }
-                            UiThreadUtil.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    ((InputMethodManager) getReactApplicationContext().getSystemService(Activity.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0);
-                                }
-                            });
-                        } else {
-                            View keyboard = (View)edit.getTag(TAG_ID);
-                            if (keyboard.getParent() != null) {
-                                ((ViewGroup) keyboard.getParent()).removeView(keyboard);
-                            }
                         }
-                    }
-                });
+                    }, 50);
+                }
+            }
+        };
 
-                edit.setOnClickListener(new View.OnClickListener(){
-                    @Override
-                    public void onClick(final View v) {
-                        View keyboard = (View)edit.getTag(TAG_ID);
-                        if (keyboard.getParent() == null) {
-                            activity.addContentView(keyboard, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                        }
-                        UiThreadUtil.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                ((InputMethodManager) getReactApplicationContext().getSystemService(Activity.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0);
-                            }
-                        });
-                    }
-                });
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager im = ((InputMethodManager) getReactApplicationContext().getSystemService(Activity.INPUT_METHOD_SERVICE));
+                im.hideSoftInputFromWindow(activity.getWindow().getDecorView().getWindowToken(), 0, receiver);
             }
         });
     }
 
-    ReactRootView rootView = null;
+    /**
+     * 禁止Edittext弹出软件盘，光标依然正常显示。
+     */
+    public void disableShowSoftInput(ReactEditText editText) {
+        try {
+            setShowSoftInputOnFocusMethod.invoke(editText, false);
+        } catch (Exception e) {
+            Log.i(TAG, "disableShowSoftInput 1  err=" + e.getMessage());
+        }
+
+        try {
+            setSoftInputShownOnFocusMethod.invoke(editText, false);
+        } catch (Exception e) {
+            Log.i(TAG, "disableShowSoftInput 2  err=" + e.getMessage());
+        }
+    }
+
+    private void setEditTextTagAndListener (final ReactEditText edit, final int tag, final String type) {
+        final Activity activity = getCurrentActivity();
+        if (edit == null || activity == null) {
+            Log.e(TAG, "setEditTextListener error null, edit=" + edit);
+            return;
+        }
+
+        disableShowSoftInput(edit);
+        edit.setTag(TAG_ID, createCustomKeyboard(activity, tag, type));
+        edit.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(final View v, boolean hasFocus) {
+                Log.i(TAG, "onFocusChange hasFocus=" + hasFocus );
+                if (hasFocus) {
+                    showKeyboard(activity, edit);
+                } else {
+                    mHandler.removeCallbacksAndMessages(null);
+                    View keyboard = (View) edit.getTag(TAG_ID);
+                    if (keyboard.getParent() != null) {
+                        ((ViewGroup) keyboard.getParent()).removeView(keyboard);
+                    }
+                }
+            }
+        });
+    }
+
+    @ReactMethod
+    public void install(final int tag, final String type) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ReactEditText edit = getEditById(tag);
+                    setEditTextTagAndListener(edit, tag, type);
+                } catch (IllegalViewOperationException e) {
+//                    Log.i(TAG, "IllegalViewOperationException");
+                    mHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            final ReactEditText edit = getEditById(tag);
+                            setEditTextTagAndListener(edit, tag, type);
+                        }
+                    }, DEFAULT_TIMEOUT);
+                }
+            }
+        });
+    }
 
     private View createCustomKeyboard(Activity activity, int tag, String type) {
         RelativeLayout layout = new RelativeLayout(activity);
         rootView = new ReactRootView(this.getReactApplicationContext());
-        rootView.setBackgroundColor(Color.WHITE);
+//        rootView.setBackgroundColor(Color.WHITE);
 
         Bundle bundle = new Bundle();
         bundle.putInt("tag", tag);
@@ -129,7 +178,8 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void uninstall(final int tag) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.removeCallbacksAndMessages(null);
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 final Activity activity = getCurrentActivity();
@@ -145,7 +195,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void insertText(final int tag, final String text) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 final Activity activity = getCurrentActivity();
@@ -164,7 +214,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void backSpace(final int tag) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 final Activity activity = getCurrentActivity();
@@ -177,7 +227,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 int end = Math.max(edit.getSelectionEnd(), 0);
                 if (start != end) {
                     edit.getText().delete(start, end);
-                } else if (start > 0){
+                } else if (start > 0) {
                     edit.getText().delete(start - 1, end);
                 }
             }
@@ -186,10 +236,9 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void doDelete(final int tag) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
-                final Activity activity = getCurrentActivity();
                 final ReactEditText edit = getEditById(tag);
                 if (edit == null) {
                     return;
@@ -199,8 +248,8 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 int end = Math.max(edit.getSelectionEnd(), 0);
                 if (start != end) {
                     edit.getText().delete(start, end);
-                } else if (start > 0){
-                    edit.getText().delete(start, end+1);
+                } else if (start > 0) {
+                    edit.getText().delete(start, end + 1);
                 }
             }
         });
@@ -208,7 +257,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void moveLeft(final int tag) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 final Activity activity = getCurrentActivity();
@@ -230,7 +279,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void moveRight(final int tag) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 final Activity activity = getCurrentActivity();
@@ -243,7 +292,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 int end = Math.max(edit.getSelectionEnd(), 0);
                 if (start != end) {
                     edit.setSelection(end, end);
-                } else if (start > 0){
+                } else if (start > 0) {
                     edit.setSelection(end + 1, end + 1);
                 }
             }
@@ -252,7 +301,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void switchSystemKeyboard(final int tag) {
-        UiThreadUtil.runOnUiThread(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 final Activity activity = getCurrentActivity();
@@ -261,11 +310,11 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                     return;
                 }
 
-                View keyboard = (View)edit.getTag(TAG_ID);
+                View keyboard = (View) edit.getTag(TAG_ID);
                 if (keyboard.getParent() != null) {
                     ((ViewGroup) keyboard.getParent()).removeView(keyboard);
                 }
-                UiThreadUtil.runOnUiThread(new Runnable() {
+                mHandler.post(new Runnable() {
 
                     @Override
                     public void run() {
