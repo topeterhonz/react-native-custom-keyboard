@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ResultReceiver;
+import android.text.Editable;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,9 +14,12 @@ import android.view.inputmethod.InputMethodManager;
 
 import android.widget.RelativeLayout;
 import com.facebook.react.ReactRootView;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.views.textinput.ReactEditText;
 import com.facebook.react.ReactInstanceManager;
 
@@ -191,6 +195,30 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 edit.setTag(TAG_ID, null);
             }
         });
+    }
+
+    @ReactMethod
+    public void getSelectionRange(final int tag, final Callback callback) {
+        WritableMap responseMap = Arguments.createMap();
+        try {
+            ReactEditText edit = getEditById(tag);
+            int start = Math.max(edit.getSelectionStart(), 0);
+            int end = Math.max(edit.getSelectionEnd(), 0);
+            Editable text = edit.getText();
+            if (text != null) {
+                responseMap.putString("text", text.toString());
+                responseMap.putInt("start", start);
+                responseMap.putInt("end", end);
+            } else {
+                Log.e(TAG, "getSelectionRange text=null");
+                responseMap.putNull("text");
+            }
+            callback.invoke(responseMap);
+        } catch (Exception e) {
+            Log.e(TAG, "getSelectionRange error=" + e.getMessage());
+            responseMap.putNull("text");
+            callback.invoke(responseMap);
+        }
     }
 
     @ReactMethod

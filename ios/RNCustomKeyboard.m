@@ -36,6 +36,15 @@ RCT_EXPORT_METHOD(uninstall:(nonnull NSNumber *)reactTag)
   [view reloadInputViews];
 }
 
+RCT_EXPORT_METHOD(getSelectionRange:(nonnull NSNumber *)reactTag callback:(RCTResponseSenderBlock)callback) {
+  UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
+  UITextRange* range = view.selectedTextRange;
+
+  const NSInteger start = [view offsetFromPosition:view.beginningOfDocument toPosition:range.start];
+  const NSInteger end = [view offsetFromPosition:view.beginningOfDocument toPosition:range.end];
+  callback(@[@{@"text":view.text, @"start":[NSNumber numberWithInteger:start], @"end":[NSNumber numberWithInteger:end]}]);
+}
+
 RCT_EXPORT_METHOD(insertText:(nonnull NSNumber *)reactTag withText:(NSString*)text) {
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
 

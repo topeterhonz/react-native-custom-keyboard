@@ -11,14 +11,14 @@ import {
 const { CustomKeyboard} = NativeModules;
 
 const {
-  install, uninstall,
+  install, uninstall, getSelectionRange,
   insertText, backSpace, doDelete,
   moveLeft, moveRight,
   switchSystemKeyboard,
 } = CustomKeyboard;
 
 export {
-  install, uninstall,
+  install, uninstall, getSelectionRange,
   insertText, backSpace, doDelete,
   moveLeft, moveRight,
   switchSystemKeyboard,
@@ -26,20 +26,21 @@ export {
 
 const keyboardTypeRegistry = {};
 
-export function register(type, factory) {
-  keyboardTypeRegistry[type] = factory;
+export function register(type, keyboardInfo) {
+  keyboardTypeRegistry[type] = keyboardInfo;
 }
 
 class CustomKeyboardContainer extends Component {
   render() {
     const {tag, type} = this.props;
-    const factory = keyboardTypeRegistry[type];
+    const factory = keyboardTypeRegistry[type].factory;
+    const inputFilter = keyboardTypeRegistry[type].inputFilter
     if (!factory) {
       console.warn(`Custom keyboard type ${type} not registered.`);
       return null;
     }
     const Comp = factory();
-    return <Comp tag={tag} />;
+    return <Comp tag={tag} inputFilter={inputFilter} />;
   }
 }
 
