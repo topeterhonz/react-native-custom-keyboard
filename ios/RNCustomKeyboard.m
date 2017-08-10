@@ -13,7 +13,7 @@
 }
 RCT_EXPORT_MODULE(CustomKeyboard)
 
-RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSString *)keyboardType)
+RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSString *)keyboardType maxLength:(int) maxLength)
 {
   UIView* inputView = [[RCTRootView alloc] initWithBridge:((RCTBatchedBridge *)_bridge).parentBridge moduleName:@"CustomKeyboard" initialProperties:
     @{
@@ -22,6 +22,7 @@ RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSStrin
     }
   ];
 
+  _maxInputLength = maxLength;
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
 
   view.inputView = inputView;
@@ -47,7 +48,19 @@ RCT_EXPORT_METHOD(getSelectionRange:(nonnull NSNumber *)reactTag callback:(RCTRe
 
 RCT_EXPORT_METHOD(insertText:(nonnull NSNumber *)reactTag withText:(NSString*)text) {
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
+  UITextRange* range = view.selectedTextRange;
 
+  const NSInteger start = [view offsetFromPosition:view.beginningOfDocument toPosition:range.start];
+  const NSInteger end = [view offsetFromPosition:view.beginningOfDocument toPosition:range.end];
+  callback(@[@{@"text":view.text, @"start":[NSNumber numberWithInteger:start], @"end":[NSNumber numberWithInteger:end]}]);
+}
+
+RCT_EXPORT_METHOD(insertText:(nonnull NSNumber *)reactTag withText:(NSString*)text) {
+  UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
+  NSString *textValue = [NSString stringWithFormat:@"%@", view.text];
+  if ([textValue length] > _maxInputLength) {
+    return;
+  }
   [view replaceRange:view.selectedTextRange withText:text];
 }
 

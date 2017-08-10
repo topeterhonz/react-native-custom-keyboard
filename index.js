@@ -52,11 +52,11 @@ export class CustomTextInput extends Component {
     customKeyboardType: PropTypes.string,
   };
   componentDidMount() {
-    install(findNodeHandle(this.input), this.props.customKeyboardType);
+    install(findNodeHandle(this.input), this.props.customKeyboardType, this.props.maxLength === undefined ? 1024 : this.props.maxLength);
   }
   componentWillReceiveProps(newProps) {
     if (newProps.customKeyboardType !== this.props.customKeyboardType) {
-      install(findNodeHandle(this.input), newProps.customKeyboardType);
+      install(findNodeHandle(this.input), newProps.customKeyboardType, newProps.maxLength === undefined ? 1024 : this.props.maxLength);
     }
   }
   onRef = ref => {
