@@ -22,7 +22,12 @@ RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSStrin
     }
   ];
 
-  _maxInputLength = maxLength;
+  if (_dicInputMaxLength == nil) {
+      _dicInputMaxLength = [NSMutableDictionary dictionaryWithCapacity:0];
+  }
+  
+  [_dicInputMaxLength setValue:[NSNumber numberWithInt:maxLength] forKey:[reactTag stringValue]];
+
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
 
   view.inputView = inputView;
@@ -48,9 +53,12 @@ RCT_EXPORT_METHOD(getSelectionRange:(nonnull NSNumber *)reactTag callback:(RCTRe
 
 RCT_EXPORT_METHOD(insertText:(nonnull NSNumber *)reactTag withText:(NSString*)text) {
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
-  NSString *textValue = [NSString stringWithFormat:@"%@", view.text];
-  if ([textValue length] >= _maxInputLength) {
-    return;
+  if (_dicInputMaxLength != nil) {
+    NSString *textValue = [NSString stringWithFormat:@"%@", view.text];
+    int  maxLegth = [_dicInputMaxLength[reactTag.stringValue] intValue];
+    if ([textValue length] >= maxLegth) {
+        return;
+    }
   }
   [view replaceRange:view.selectedTextRange withText:text];
 }
