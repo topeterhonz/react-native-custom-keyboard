@@ -24,6 +24,8 @@ import com.facebook.react.views.textinput.ReactEditText;
 import com.facebook.react.ReactInstanceManager;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
     private static final String TAG = "RNCustomKeyboardModule";
@@ -37,6 +39,8 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     private ReactRootView rootView = null;
     private Handler mHandler = new Handler(Looper.getMainLooper());
+
+    private Map<Integer, Integer> mKeyboardToMaxInputLength = new HashMap<>();
 
     public RNCustomKeyboardModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -138,7 +142,9 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void install(final int tag, final String type) {
+    public void install(final int tag, final String type, final int maxInputLength) {
+
+        mKeyboardToMaxInputLength.put(tag, maxInputLength);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -229,6 +235,11 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 final Activity activity = getCurrentActivity();
                 final ReactEditText edit = getEditById(tag);
                 if (edit == null) {
+                    return;
+                }
+
+                Integer maxLength = mKeyboardToMaxInputLength.get(tag);
+                if (maxLength != null && edit.getText().length() >= maxLength ){
                     return;
                 }
 
