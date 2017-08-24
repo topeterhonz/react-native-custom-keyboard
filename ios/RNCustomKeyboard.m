@@ -13,7 +13,7 @@
 }
 RCT_EXPORT_MODULE(CustomKeyboard)
 
-RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSString *)keyboardType)
+RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSString *)keyboardType maxLength:(int) maxLength)
 {
   UIView* inputView = [[RCTRootView alloc] initWithBridge:((RCTBatchedBridge *)_bridge).parentBridge moduleName:@"CustomKeyboard" initialProperties:
     @{
@@ -21,6 +21,12 @@ RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSStrin
       @"type": keyboardType
     }
   ];
+
+  if (_dicInputMaxLength == nil) {
+      _dicInputMaxLength = [NSMutableDictionary dictionaryWithCapacity:0];
+  }
+  
+  [_dicInputMaxLength setValue:[NSNumber numberWithInt:maxLength] forKey:[reactTag stringValue]];
 
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
 
@@ -36,9 +42,24 @@ RCT_EXPORT_METHOD(uninstall:(nonnull NSNumber *)reactTag)
   [view reloadInputViews];
 }
 
+RCT_EXPORT_METHOD(getSelectionRange:(nonnull NSNumber *)reactTag callback:(RCTResponseSenderBlock)callback) {
+  UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
+  UITextRange* range = view.selectedTextRange;
+
+  const NSInteger start = [view offsetFromPosition:view.beginningOfDocument toPosition:range.start];
+  const NSInteger end = [view offsetFromPosition:view.beginningOfDocument toPosition:range.end];
+  callback(@[@{@"text":view.text, @"start":[NSNumber numberWithInteger:start], @"end":[NSNumber numberWithInteger:end]}]);
+}
+
 RCT_EXPORT_METHOD(insertText:(nonnull NSNumber *)reactTag withText:(NSString*)text) {
   UITextView *view = (UITextView*)[_bridge.uiManager viewForReactTag:reactTag];
-
+  if (_dicInputMaxLength != nil) {
+    NSString *textValue = [NSString stringWithFormat:@"%@", view.text];
+    int  maxLegth = [_dicInputMaxLength[reactTag.stringValue] intValue];
+    if ([textValue length] >= maxLegth) {
+        return;
+    }
+  }
   [view replaceRange:view.selectedTextRange withText:text];
 }
 
