@@ -20,6 +20,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.views.textinput.ReactEditText;
 import com.facebook.react.ReactInstanceManager;
 
@@ -115,6 +116,27 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         }
     }
 
+    private void sendFocusChangeListener (ReactEditText editText, boolean hasFocus) {
+        if (editText != null) {
+            EventDispatcher eventDispatcher =
+                    reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+            if (hasFocus) {
+                eventDispatcher.dispatchEvent(
+                        new ReactTextInputFocusEvent(
+                                editText.getId()));
+            } else {
+                eventDispatcher.dispatchEvent(
+                        new ReactTextInputBlurEvent(
+                                editText.getId()));
+
+                eventDispatcher.dispatchEvent(
+                        new ReactTextInputEndEditingEvent(
+                                editText.getId(),
+                                editText.getText().toString()));
+            }
+        }
+    }
+
     private void setEditTextTagAndListener (final ReactEditText edit, final int tag, final String type) {
         final Activity activity = getCurrentActivity();
         if (edit == null || activity == null) {
@@ -128,6 +150,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
             @Override
             public void onFocusChange(final View v, boolean hasFocus) {
                 Log.i(TAG, "onFocusChange hasFocus=" + hasFocus );
+                sendFocusChangeListener(edit, hasFocus);
                 if (hasFocus) {
                     showKeyboard(activity, edit);
                 } else {
