@@ -64,6 +64,7 @@ export class CustomTextInput extends Component {
   };
   render() {
     const { customKeyboardType, ...others } = this.props;
-    return <TextInput {...others} ref={this.onRef}/>;
+    return <TextInput {...others} keyboardType={'numeric'} ref={this.onRef}/>;
   }
 }
+
