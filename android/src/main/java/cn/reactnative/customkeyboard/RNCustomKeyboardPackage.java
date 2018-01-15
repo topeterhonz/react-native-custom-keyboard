@@ -17,7 +17,6 @@ public class RNCustomKeyboardPackage implements ReactPackage {
       return Arrays.<NativeModule>asList(new RNCustomKeyboardModule(reactContext));
     }
 
-    @Override
     public List<Class<? extends JavaScriptModule>> createJSModules() {
       return Collections.emptyList();
     }
