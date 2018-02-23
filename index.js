@@ -5,7 +5,7 @@ import {
   NativeModules,
   TextInput,
   findNodeHandle,
-  AppRegistry,
+  AppRegistry
 } from 'react-native';
 import PropTypes from 'prop-types'
 
@@ -26,9 +26,14 @@ export {
 };
 
 const keyboardTypeRegistry = {};
+const defaultKeyboardHeight = 216
 
 export function register(type, keyboardInfo) {
   keyboardTypeRegistry[type] = keyboardInfo;
+}
+const getKeyboardHeightByType = (type) => {
+  const height = keyboardTypeRegistry[type].height
+  return height || defaultKeyboardHeight
 }
 
 class CustomKeyboardContainer extends Component {
@@ -53,15 +58,27 @@ export class CustomTextInput extends Component {
     customKeyboardType: PropTypes.string,
   };
   componentDidMount() {
-    install(findNodeHandle(this.input), this.props.customKeyboardType, this.props.maxLength === undefined ? 1024 : this.props.maxLength);
+    install(
+      findNodeHandle(this.input),
+      this.props.customKeyboardType,
+      this.props.maxLength === undefined ? 1024 : this.props.maxLength,
+      getKeyboardHeightByType(this.props.customKeyboardType)
+    );
   }
   componentWillReceiveProps(newProps) {
-    if (newProps.customKeyboardType !== this.props.customKeyboardType) {
-      install(findNodeHandle(this.input), newProps.customKeyboardType, newProps.maxLength === undefined ? 1024 : this.props.maxLength);
+    if (this.props.customKeyboardType && newProps.customKeyboardType && newProps.customKeyboardType !== this.props.customKeyboardType) {
+      install(
+        findNodeHandle(this.input),
+        newProps.customKeyboardType,
+        newProps.maxLength === undefined ? 1024 : this.props.maxLength,
+        getKeyboardHeightByType(newProps.customKeyboardType)
+      );
     }
   }
   onRef = ref => {
+    if (ref) {
     this.input = ref;
+    }
   };
   render() {
     const { customKeyboardType, ...others } = this.props;
