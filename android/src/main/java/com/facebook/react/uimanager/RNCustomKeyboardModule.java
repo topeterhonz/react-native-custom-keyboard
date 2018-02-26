@@ -165,7 +165,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void install(final int tag, final String type, final int maxInputLength) {
+    public void install(final int tag, final String type, final int maxInputLength, final int height) {
 
         mKeyboardToMaxInputLength.put(tag, maxInputLength);
         mHandler.post(new Runnable() {
