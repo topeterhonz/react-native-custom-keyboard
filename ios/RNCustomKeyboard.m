@@ -16,20 +16,13 @@ RCT_EXPORT_MODULE(CustomKeyboard)
 
 RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSString *)keyboardType maxLength:(int) maxLength inputViewHeight:(int) inputViewHeight)
 {
-    if (!_inputView) {
-        _inputView = [[RCTRootView alloc] initWithBridge:((RCTBatchedBridge *)_bridge).parentBridge moduleName:@"CustomKeyboard" initialProperties:
+    RCTRootView * _inputView = [[RCTRootView alloc] initWithBridge:((RCTBatchedBridge *)_bridge).parentBridge moduleName:@"CustomKeyboard" initialProperties:
                       @{
                         @"tag": reactTag,
                         @"type": keyboardType
                         }
                       ];
-    } else {
-        _inputView.appProperties = @{
-                                     @"tag": reactTag,
-                                     @"type": keyboardType
-                                     };
-    }
-    
+
     if (_dicInputMaxLength == nil) {
         _dicInputMaxLength = [NSMutableDictionary dictionaryWithCapacity:0];
     }
