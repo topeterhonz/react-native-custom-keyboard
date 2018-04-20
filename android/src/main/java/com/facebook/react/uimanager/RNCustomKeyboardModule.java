@@ -31,7 +31,9 @@ import java.util.Map;
 public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
     private static final String TAG = "RNCustomKeyboardModule";
     private static final int DEFAULT_TIMEOUT = 200;
+    private static final int RETRY_COUNT = 5;
     private final int TAG_ID = 0xdeadbeaf;
+    private int installRetryRef = 0;
     private final ReactApplicationContext reactContext;
     public static ReactInstanceManager rnInstanceManager;
 
@@ -149,7 +151,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         edit.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(final View v, boolean hasFocus) {
-                Log.i(TAG, "onFocusChange hasFocus=" + hasFocus );
+                Log.i(TAG, "onFocusChange hasFocus=" + hasFocus);
                 sendFocusChangeListener(edit, hasFocus);
                 if (hasFocus) {
                     showKeyboard(activity, edit);
@@ -166,26 +168,33 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void install(final int tag, final String type, final int maxInputLength, final int height) {
-
+        installRetryRef = 0;
         mKeyboardToMaxInputLength.put(tag, maxInputLength);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
-                try {
-                    ReactEditText edit = getEditById(tag);
-                    setEditTextTagAndListener(edit, tag, type);
-                } catch (IllegalViewOperationException e) {
-//                    Log.i(TAG, "IllegalViewOperationException");
-                    mHandler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            final ReactEditText edit = getEditById(tag);
-                            setEditTextTagAndListener(edit, tag, type);
-                        }
-                    }, DEFAULT_TIMEOUT);
-                }
+               doInstall(tag, type);
             }
         });
+    }
+
+    private void doInstall (final int tag, final String type) {
+        try {
+            ReactEditText edit = getEditById(tag);
+            setEditTextTagAndListener(edit, tag, type);
+            installRetryRef = 0;
+        } catch (IllegalViewOperationException e) {
+//            Log.i(TAG, "IllegalViewOperationException");
+            if (installRetryRef < RETRY_COUNT) {
+                installRetryRef++;
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        doInstall(tag, type);
+                    }
+                }, DEFAULT_TIMEOUT);
+            }
+        }
     }
 
     private View createCustomKeyboard(Activity activity, int tag, String type) {
@@ -211,6 +220,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void uninstall(final int tag) {
+        installRetryRef = 0;
         mHandler.removeCallbacksAndMessages(null);
         mHandler.post(new Runnable() {
             @Override
