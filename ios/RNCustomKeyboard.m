@@ -103,6 +103,11 @@ RCT_EXPORT_METHOD(doDelete:(nonnull NSNumber *)reactTag) {
     [view replaceRange:range withText:@""];
 }
 
+RCT_EXPORT_METHOD(submit:(nonnull NSNumber *)reactTag) {
+    RCTBaseTextInputView *textInputView = ((RCTBaseTextInputView*)[_bridge.uiManager viewForReactTag:reactTag]);
+    [textInputView textInputShouldReturn];
+}
+
 RCT_EXPORT_METHOD(moveLeft:(nonnull NSNumber *)reactTag) {
     UITextView *view = (UITextView *)(((RCTBaseTextInputView*)[_bridge.uiManager viewForReactTag:reactTag]).backedTextInputView);
 
