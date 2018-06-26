@@ -80,7 +80,19 @@ RCT_EXPORT_METHOD(insertText:(nonnull NSNumber *)reactTag withText:(NSString*)te
             return;
         }
     }
-    [view replaceRange:view.selectedTextRange withText:text];
+
+    // trim repeating character
+    NSString *toInsert = text;
+    if (toInsert.length > 1) {
+        NSString *existing = [NSString stringWithFormat:@"%@", view.text];
+        NSInteger start = [view offsetFromPosition:view.beginningOfDocument toPosition:view.selectedTextRange.start];
+
+        if (start > 0 && [existing characterAtIndex:(start - 1)] == [toInsert characterAtIndex:0]) {
+            toInsert = [toInsert substringFromIndex:1];
+        }
+    }
+
+    [view replaceRange:view.selectedTextRange withText:toInsert];
 }
 
 RCT_EXPORT_METHOD(backSpace:(nonnull NSNumber *)reactTag) {

@@ -353,10 +353,20 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                     return;
                 }
 
+
                 int start = Math.max(edit.getSelectionStart(), 0);
                 int end = Math.max(edit.getSelectionEnd(), 0);
+
+                // trim repeating character
+                String toInsert = text;
+                if (toInsert.length() > 1) {
+                    String existing = edit.getText().toString();
+                    if (start > 0 && existing.charAt(start - 1) == toInsert.charAt(0)) {
+                        toInsert = toInsert.substring(1);
+                    }
+                }
                 edit.getText().replace(Math.min(start, end), Math.max(start, end),
-                        text, 0, text.length());
+                        toInsert, 0, toInsert.length());
             }
         });
     }
