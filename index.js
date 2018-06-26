@@ -15,6 +15,7 @@ const {
   install, uninstall, getSelectionRange,
   insertText, backSpace, doDelete,
   moveLeft, moveRight,
+  submit,
   switchSystemKeyboard,
 } = CustomKeyboard;
 
@@ -22,6 +23,7 @@ export {
   install, uninstall, getSelectionRange,
   insertText, backSpace, doDelete,
   moveLeft, moveRight,
+  submit,
   switchSystemKeyboard,
 };
 
@@ -82,7 +84,7 @@ export class CustomTextInput extends Component {
   };
   render() {
     const { customKeyboardType, ...others } = this.props;
-    return <TextInput {...others} keyboardType={'numeric'} ref={this.onRef}/>;
+    return <TextInput {...others} ref={this.onRef}/>;
   }
 }
 

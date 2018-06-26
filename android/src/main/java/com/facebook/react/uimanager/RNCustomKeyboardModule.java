@@ -11,8 +11,9 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-
 import android.widget.RelativeLayout;
+
+import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.ReactRootView;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -20,9 +21,10 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.uimanager.events.Event;
 import com.facebook.react.uimanager.events.EventDispatcher;
+import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.facebook.react.views.textinput.ReactEditText;
-import com.facebook.react.ReactInstanceManager;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -51,7 +53,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         initReflectMethod();
     }
 
-    private void initReflectMethod () {
+    private void initReflectMethod() {
         Class<ReactEditText> cls = ReactEditText.class;
         try {
             setShowSoftInputOnFocusMethod = cls.getMethod("setShowSoftInputOnFocus", boolean.class);
@@ -67,12 +69,12 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private ReactEditText getEditById(int id) throws IllegalViewOperationException{
+    private ReactEditText getEditById(int id) throws IllegalViewOperationException {
         UIViewOperationQueue uii = this.getReactApplicationContext().getNativeModule(UIManagerModule.class).getUIImplementation().getUIViewOperationQueue();
         return (ReactEditText) uii.getNativeViewHierarchyManager().resolveView(id);
     }
 
-    private void showKeyboard (final Activity activity, final ReactEditText edit) {
+    private void showKeyboard(final Activity activity, final ReactEditText edit) {
         final ResultReceiver receiver = new ResultReceiver(mHandler) {
             @Override
             protected void onReceiveResult(int resultCode, Bundle resultData) {
@@ -118,7 +120,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private void sendFocusChangeListener (ReactEditText editText, boolean hasFocus) {
+    private void sendFocusChangeListener(ReactEditText editText, boolean hasFocus) {
         if (editText != null) {
             EventDispatcher eventDispatcher =
                     reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
@@ -139,7 +141,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private void setEditTextTagAndListener (final ReactEditText edit, final int tag, final String type) {
+    private void setEditTextTagAndListener(final ReactEditText edit, final int tag, final String type) {
         final Activity activity = getCurrentActivity();
         if (edit == null || activity == null) {
             Log.e(TAG, "setEditTextListener error null, edit=" + edit);
@@ -173,12 +175,12 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         mHandler.post(new Runnable() {
             @Override
             public void run() {
-               doInstall(tag, type);
+                doInstall(tag, type);
             }
         });
     }
 
-    private void doInstall (final int tag, final String type) {
+    private void doInstall(final int tag, final String type) {
         try {
             ReactEditText edit = getEditById(tag);
             setEditTextTagAndListener(edit, tag, type);
@@ -211,11 +213,86 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 bundle);
 
         final float scale = activity.getResources().getDisplayMetrics().density;
-        RelativeLayout.LayoutParams lParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(216*scale));
+        RelativeLayout.LayoutParams lParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(216 * scale));
         lParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
         layout.addView(rootView, lParams);
 //        activity.addContentView(layout, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return layout;
+    }
+
+    @ReactMethod
+    public void submit(final int tag) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                final Activity activity = getCurrentActivity();
+
+
+                final ReactEditText editText = getEditById(tag);
+                if (editText == null) {
+                    return;
+                }
+
+                boolean blurOnSubmit = editText.getBlurOnSubmit();
+
+                // Motivation:
+                // * blurOnSubmit && isMultiline => Clear focus; prevent default behaviour (return true);
+                // * blurOnSubmit && !isMultiline => Clear focus; prevent default behaviour (return true);
+                // * !blurOnSubmit && isMultiline => Perform default behaviour (return false);
+                // * !blurOnSubmit && !isMultiline => Prevent default behaviour (return true).
+                // Additionally we always generate a `submit` event.
+
+                EventDispatcher eventDispatcher =
+                        reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+
+                eventDispatcher.dispatchEvent(
+                        new ReactTextInputSubmitEditingEvent(
+                                editText.getId(),
+                                editText.getText().toString()));
+
+                if (blurOnSubmit) {
+                    editText.clearFocus();
+                }
+            }
+        });
+    }
+
+    // Copied from React Native source since it's package private
+    static class ReactTextInputSubmitEditingEvent
+            extends Event<ReactTextInputSubmitEditingEvent> {
+
+        private static final String EVENT_NAME = "topSubmitEditing";
+
+        private String mText;
+
+        public ReactTextInputSubmitEditingEvent(
+                int viewId,
+                String text) {
+            super(viewId);
+            mText = text;
+        }
+
+        @Override
+        public String getEventName() {
+            return EVENT_NAME;
+        }
+
+        @Override
+        public boolean canCoalesce() {
+            return false;
+        }
+
+        @Override
+        public void dispatch(RCTEventEmitter rctEventEmitter) {
+            rctEventEmitter.receiveEvent(getViewTag(), getEventName(), serializeEventData());
+        }
+
+        private WritableMap serializeEventData() {
+            WritableMap eventData = Arguments.createMap();
+            eventData.putInt("target", getViewTag());
+            eventData.putString("text", mText);
+            return eventData;
+        }
     }
 
     @ReactMethod
@@ -272,7 +349,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
                 }
 
                 Integer maxLength = mKeyboardToMaxInputLength.get(tag);
-                if (maxLength != null && edit.getText().length() >= maxLength ){
+                if (maxLength != null && edit.getText().length() >= maxLength) {
                     return;
                 }
 
@@ -399,6 +476,6 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-      return "CustomKeyboard";
+        return "CustomKeyboard";
     }
 }
