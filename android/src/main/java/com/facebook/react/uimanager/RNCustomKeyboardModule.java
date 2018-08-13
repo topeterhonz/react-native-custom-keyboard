@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.RelativeLayout;
 
+import com.facebook.react.ReactApplication;
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.ReactRootView;
 import com.facebook.react.bridge.Arguments;
@@ -208,7 +209,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         bundle.putInt("tag", tag);
         bundle.putString("type", type);
         rootView.startReactApplication(
-                rnInstanceManager,
+                ((ReactApplication) activity.getApplication()).getReactNativeHost().getReactInstanceManager(),
                 "CustomKeyboard",
                 bundle);
 
