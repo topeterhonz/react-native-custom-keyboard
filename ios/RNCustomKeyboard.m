@@ -34,6 +34,12 @@ RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSStrin
     UITextView *view = (UITextView *)(((RCTBaseTextInputView*)[_bridge.uiManager viewForReactTag:reactTag]).backedTextInputView);
     _inputView.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, inputViewHeight);
 
+    if (@available(iOS 9.0, *)) {
+        UITextInputAssistantItem* item = [view inputAssistantItem];
+        item.leadingBarButtonGroups = @[];
+        item.trailingBarButtonGroups = @[];
+    }
+    
     view.inputView = _inputView;
     [view reloadInputViews];
 }
