@@ -100,7 +100,7 @@ class _InputAssistantDisabledTextInput extends Component {
   onRef = ref => {
     if (ref) {
       this.input = ref;
-      this.props.innerRef(ref);
+      this.props.innerRef && this.props.innerRef(ref);
     }
   };
 
