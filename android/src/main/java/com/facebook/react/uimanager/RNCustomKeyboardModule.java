@@ -199,6 +199,11 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void hideInputAssistant(final int tag) {
+        // no-op on Android
+    }
+
     private View createCustomKeyboard(Activity activity, int tag, String type, int height) {
         RelativeLayout layout = new RelativeLayout(activity);
         rootView = new ReactRootView(this.getReactApplicationContext());
