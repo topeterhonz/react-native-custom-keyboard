@@ -44,6 +44,16 @@ RCT_EXPORT_METHOD(install:(nonnull NSNumber *)reactTag withType:(nonnull NSStrin
     [view reloadInputViews];
 }
 
+RCT_EXPORT_METHOD(hideInputAssistant:(nonnull NSNumber *)reactTag)
+{
+    UITextView *view = (UITextView *)(((RCTBaseTextInputView*)[_bridge.uiManager viewForReactTag:reactTag]).backedTextInputView);
+    if (@available(iOS 9.0, *)) {
+        UITextInputAssistantItem* item = [view inputAssistantItem];
+        item.leadingBarButtonGroups = @[];
+        item.trailingBarButtonGroups = @[];
+    }
+}
+
 RCT_EXPORT_METHOD(uninstall:(nonnull NSNumber *)reactTag)
 {
     UITextView *view = (UITextView *)(((RCTBaseTextInputView*)[_bridge.uiManager viewForReactTag:reactTag]).backedTextInputView);

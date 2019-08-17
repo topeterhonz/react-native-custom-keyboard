@@ -17,6 +17,7 @@ const {
   moveLeft, moveRight,
   submit,
   switchSystemKeyboard,
+  hideInputAssistant,
 } = CustomKeyboard;
 
 export {
@@ -25,6 +26,7 @@ export {
   moveLeft, moveRight,
   submit,
   switchSystemKeyboard,
+  hideInputAssistant
 };
 
 const keyboardTypeRegistry = {};
@@ -87,4 +89,28 @@ export class CustomTextInput extends Component {
     return <TextInput {...others} ref={this.onRef}/>;
   }
 }
+
+class _InputAssistantDisabledTextInput extends Component {
+  componentDidMount() {
+    hideInputAssistant(
+      findNodeHandle(this.input),
+    );
+  }
+
+  onRef = ref => {
+    if (ref) {
+      this.input = ref;
+      this.props.innerRef(ref);
+    }
+  };
+
+  render() {
+    return <TextInput {...this.props} ref={this.onRef}/>;
+  }
+}
+
+export const InputAssistantDisabledTextInput = React.forwardRef((props, ref) => <_InputAssistantDisabledTextInput
+  innerRef={ref}
+  {...props}
+/>)
 
