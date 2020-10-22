@@ -99,7 +99,9 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
             @Override
             public void run() {
                 InputMethodManager im = ((InputMethodManager) getReactApplicationContext().getSystemService(Activity.INPUT_METHOD_SERVICE));
-                im.hideSoftInputFromWindow(activity.getWindow().getDecorView().getWindowToken(), 0, receiver);
+                im.hideSoftInputFromWindow(activity.getWindow().getDecorView().getWindowToken(), 0/*, receiver*/);
+                View keyboard = (View) edit.getTag(TAG_ID);
+                activity.addContentView(keyboard, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
         });
     }
