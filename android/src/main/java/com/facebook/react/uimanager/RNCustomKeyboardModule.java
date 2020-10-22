@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.RelativeLayout;
 
+import com.facebook.react.ReactApplication;
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.ReactRootView;
 import com.facebook.react.bridge.Arguments;
@@ -98,7 +99,9 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
             @Override
             public void run() {
                 InputMethodManager im = ((InputMethodManager) getReactApplicationContext().getSystemService(Activity.INPUT_METHOD_SERVICE));
-                im.hideSoftInputFromWindow(activity.getWindow().getDecorView().getWindowToken(), 0, receiver);
+                im.hideSoftInputFromWindow(activity.getWindow().getDecorView().getWindowToken(), 0/*, receiver*/);
+                View keyboard = (View) edit.getTag(TAG_ID);
+                activity.addContentView(keyboard, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
         });
     }
@@ -213,7 +216,7 @@ public class RNCustomKeyboardModule extends ReactContextBaseJavaModule {
         bundle.putInt("tag", tag);
         bundle.putString("type", type);
         rootView.startReactApplication(
-                rnInstanceManager,
+                ((ReactApplication) activity.getApplication()).getReactNativeHost().getReactInstanceManager(),
                 "CustomKeyboard",
                 bundle);
 
